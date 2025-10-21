@@ -1,0 +1,128 @@
+Servicios de Google Maps API Implementados
+
+    Este documento describe los componentes de la plataforma de Google Maps que se utilizaron para el 
+    desarrollo del "Calculador de Rutas SLP".
+
+    1. API Principal: Maps JavaScript API
+
+        - Este es el servicio fundamental que permite incrustar y manipular un mapa interactivo en una página web.
+
+            + Funciones Generales
+
+                ~ Renderizar mapas de diferentes tipos (callejero, satelital, híbrido, terreno).
+
+                ~ Controlar la vista del mapa (centro, nivel de zoom, inclinación).
+
+                ~ Agregar elementos visuales como marcadores (Markers), ventanas de información (InfoWindows) 
+                y formas (polígonos, polilíneas).
+
+                ~ Manejar eventos de usuario (clics, arrastrar, zoom).
+
+            + Dentro de nuestro proyecto
+
+                ~ Inicialización del Mapa: Se utilizó new google.maps.Map() para crear el objeto de mapa.
+
+                ~ Centro y Zoom Inicial: Se configuró el mapa para centrarse en coordenadas específicas 
+                de SLP ({ lat: 22.1564, lng: -100.9855 }) con un zoom de 12.
+
+                ~ Lienzo de Renderizado: El objeto map se utilizó como el destino (.setMap(map)) donde 
+                el DirectionsRenderer dibuja las rutas calculadas.
+
+    2. Servicio: Directions Service (Servicio de Direcciones)
+
+        - Este es el cerebro de la aplicación. Es el servicio que calcula las rutas entre dos o más puntos.
+
+            + Funciones Generales
+
+                ~ Calcular rutas para diferentes modos de transporte (TravelMode): manejo (DRIVING), 
+                caminata (WALKING), transporte público (TRANSIT) o bicicleta (BICYCLING).
+
+                ~ Aceptar un origen, un destino y una lista de paradas intermedias (waypoints).
+
+                ~ Optimizar el orden de las paradas (optimizeWaypoints: true) para encontrar la ruta 
+                más corta (resolviendo el Problema del Agente Viajero).
+
+                ~ Solicitar y devolver múltiples rutas alternativas (provideRouteAlternatives: true), si existen.
+
+                ~ Devolver un objeto de respuesta complejo (DirectionsResponse) que contiene todos los datos de la 
+                ruta, incluyendo la distancia, la duración y las instrucciones textuales para cada tramo (leg).
+
+            + Dentro de nuestro proyecto
+
+                ~ Instanciación: Se creó una instancia global con new google.maps.DirectionsService().
+
+                ~ Modo de Viaje: Se configuró la solicitud (request) para usar exclusivamente travelMode: 
+                google.maps.TravelMode.DRIVING.
+
+                ~ Paradas Intermedias (Waypoints): Se implementó la capacidad de recolectar dinámicamente 
+                las paradas del waypointsContainer y pasarlas a la solicitud
+
+                ~ Optimización de Ruta: Se activó la opción optimizeWaypoints: true. Esto es clave, ya que 
+                significa que la API reordena las paradas intermedias para que el viaje total sea lo más eficiente 
+                posible, en lugar de seguir el orden en que el usuario las ingresó.
+
+                ~ Rutas Alternativas: Se activó la opción provideRouteAlternatives: true. Esta es la funcionalidad 
+                central del proyecto, ya que permite a la API devolver varias rutas, que luego se utilizan para llenar 
+                el menú desplegable.
+
+                ~ Manejo de Respuesta: Se procesó la response para extraer la duración y distancia de todas las rutas 
+                devueltas, ordenarlas por duración y almacenarlas en availableRoutes.
+
+    3. Clase Auxiliar: Directions Renderer (Visualizador de Direcciones)
+
+         - Este objeto actúa como el "brazo" del DirectionsService. Toma la respuesta compleja del servicio y la 
+        dibuja automáticamente en el mapa.   
+
+            + Funciones Generales
+
+                ~ Dibujar la polilínea (la línea de la ruta) en un mapa.
+
+                ~ Colocar marcadores (A, B, C...) en el origen, destino y paradas.
+
+                ~ Mostrar automáticamente las instrucciones de texto paso a paso en un contenedor HTML (div).
+
+                ~ Permitir la selección de una ruta específica (por índice) de una respuesta que contiene múltiples alternativas.
+
+            + Dentro de nuestro proyecto
+
+                ~ nstanciación y Estilo: Se creó una instancia (new google.maps.DirectionsRenderer()) y se personalizaron las 
+                opciones de la línea (polylineOptions) para cambiar su color, opacidad y grosor.
+
+                ~ Vinculación al Mapa: Se vinculó al mapa con directionsRenderer.setMap(map).
+
+                ~ Panel de Instrucciones: Se vinculó al div de instrucciones con 
+                directionsRenderer.setPanel(document.getElementById("directions-panel")), lo que permite que las instrucciones 
+                de texto aparezcan automáticamente.
+
+                ~ Selección de Ruta (Crítico): Se utilizó la función directionsRenderer.setRouteIndex(selectedRouteIndex) en la 
+                función displaySelectedRoute(). Esto permite que, cuando el usuario cambia la selección en el desplegable, el 
+                renderer borre la ruta anterior y dibuje la nueva ruta seleccionada (basada en el índice) sin tener que hacer 
+                una nueva solicitud a la API.
+
+    4. Servicio: Places Library (Biblioteca de Lugares)
+
+        - Esta es una biblioteca separada que se debe cargar explícitamente (&libraries=places). Su función principal es 
+        gestionar datos sobre millones de lugares. Se utilizó una de sus características más comunes.
+
+            + Funciones Generales
+
+                ~ Autocompletado (Autocomplete): Sugiere direcciones y lugares a medida que el usuario escribe en un campo de texto.
+
+                ~ Búsqueda de Lugares (Place Search): Encuentra lugares basados en consultas (ej. "restaurantes cerca de mí").
+
+                ~ Detalles del Lugar (Place Details): Obtiene información detallada de un lugar (fotos, reseñas, horarios, etc.).
+
+            + Dentro de nuestro proyecto
+
+                ~ Solo Autocompletado: Únicamente se utilizó el servicio new google.maps.places.Autocomplete().
+
+                ~ Vinculación a Entradas: Se aplicó el autocompletado al origin-input, destination-input y, crucialmente, a cada 
+                nuevo campo de parada (waypoint-${id}) que se crea dinámicamente.
+
+                ~ Preferencia Geográfica (Bias): Se configuró fuertemente para priorizar SLP mediante:
+
+                    * bounds: SLP_BOUNDS: Da preferencia a las sugerencias dentro del polígono de SLP.
+
+                    * strictBounds: false: Permite que se encuentren direcciones fuera de SLP, pero las sugerencias de SLP aparecen primero.
+
+                    * componentRestrictions: { country: ["mx"] }: Limita todas las búsquedas solo a México.
