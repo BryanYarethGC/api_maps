@@ -1,0 +1,73 @@
+1. Componentes de la Interfaz de Usuario (UI) - <body>
+
+    La sección <body> contiene los elementos HTML que conforman la interfaz visible para el usuario. 
+    La interacción se gestiona asociando identificadores (id) únicos a elementos clave, permitiendo 
+    que JavaScript los manipule.
+
+        - id="origin-input": Campo de texto (<input>) que captura la dirección de origen. El id se utiliza 
+        como selector en JavaScript para leer el valor ingresado por el usuario.
+
+        - id="add-waypoint-btn": Elemento de botón (<button>) que, al ser presionado, dispara un evento de 
+        clic. Este evento es gestionado por JavaScript para añadir dinámicamente nuevos campos de parada.
+
+        - id="waypoints-container": Contenedor (<div>) vacío diseñado para ser poblado dinámicamente. El script 
+        app.js inserta nuevos campos de texto de "parada intermedia" dentro de este elemento.
+
+        - id="destination-input": Campo de texto (<input>) que captura la dirección de destino
+
+        - id="calculate-route-btn": Botón principal que actúa como el disparador (trigger) principal de la 
+        aplicación. Su evento de clic inicia la función de JavaScript que recopila todos los datos y solicita 
+        el cálculo de ruta.
+
+        - id="route-selection-area": Contenedor (<div>) con la propiedad CSS display: none (oculto por defecto). 
+        Alberga un menú desplegable (<select>). JavaScript lo hace visible (display: block o similar) si la API 
+        de Google Maps retorna múltiples rutas alternativas.
+
+        - id="results": Contenedor (<div>) oculto, designado para mostrar la salida de datos de la ruta seleccionada 
+        (ej. distancia total y tiempo estimado).
+
+        - id="error-message": Contenedor (<div>) oculto, utilizado para mostrar mensajes de error al usuario en 
+        caso de que una dirección no se encuentre o falle la solicitud a la API.
+
+2. Contenedores de Visualización del Mapa
+
+    Estos elementos <div> actúan como contenedores de destino para la salida visual generada por la API de Google Maps.
+
+        - id="map": Elemento div fundamental. Actúa como el lienzo (canvas) de renderizado donde la API de Google Maps 
+        dibuja el mapa interactivo y las polilíneas de las rutas.
+
+        - id="directions-panel": Contenedor div vacío, destinado a recibir y mostrar las instrucciones de navegación 
+        textuales (paso a paso) generadas por el servicio de direcciones.
+
+3. Carga de Lógica y APIs - <script>
+
+    - app.js (Archivo de Lógica Principal): Este script contiene la lógica central de la aplicación. Sus responsabilidades 
+    principales son:
+
+        + Inicialización: Provee la función initMap, que es el punto de entrada para la API de Google Maps.
+
+        + Manejo de Eventos (Event Handling): Contiene los listeners para los eventos de clic de #add-waypoint-btn y 
+        #calculate-route-btn.
+
+        + Comunicación API: Construye la solicitud (request) al servicio DirectionsService de Google, utilizando 
+        los valores de los campos de entrada.
+
+        + Renderización de Resultados: Procesa la respuesta (response) de la API. Utiliza el DirectionsRenderer para 
+        dibujar la ruta en #map y actualiza el contenido de #results y #directions-panel con los datos de la ruta.
+
+    - font-awesome-kit.js (Librería de Iconos): Script externo que carga la librería Font Awesome. Se utiliza para fines 
+    estéticos, permitiendo el uso de iconos vectoriales, como el <i class="fas fa-route"></i> en el botón de cálculo.
+
+    - bootstrap.bundle.min.js (Librería de Framework): Carga los componentes JavaScript del framework Bootstrap. Es 
+    necesario para la funcionalidad interactiva de ciertos componentes de Bootstrap (ej. menús desplegables, modales, etc.).
+
+    - API de Google Maps (Script de Carga): Esta etiqueta <script> carga de forma asíncrona la API de Google Maps. Los 
+    parámetros clave son:
+    
+        + key=...: La clave de API (API Key) pública que autentica las solicitudes contra los servicios de Google Cloud Platform.
+
+        + callback=initMap: Un parámetro fundamental. Instruye a la API de Google para que, una vez que termine de cargarse 
+        completamente, ejecute la función global llamada initMap.
+
+        + ibraries=places: Carga la librería "Places" de Google Maps. Esta librería es esencial para habilitar la funcionalidad 
+        de autocompletado de direcciones en los campos input de origen y destino.

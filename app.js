@@ -255,9 +255,9 @@ function calculateRoute() {
             // 9. Manejo de errores 
             let errorMessage = "No se pudo calcular la ruta.";
             if (status === "NOT_FOUND" || status === "ZERO_RESULTS") {
-                errorMessage = "❌ ERROR: No se encontró ruta. Verifica las direcciones y usa el autocompletado.";
+                errorMessage = "ERROR: No se encontró ruta. Verifica las direcciones y usa el autocompletado.";
             } else {
-                errorMessage = `❌ ERROR de servicio: ${status}.`;
+                errorMessage = `ERROR de servicio: ${status}.`;
             }
             
             errorDiv.textContent = errorMessage;

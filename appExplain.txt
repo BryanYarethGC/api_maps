@@ -1,0 +1,170 @@
+--- Script de Aplicación (app.js) ---
+
+Este script contiene la lógica de cliente para interactuar con la API de Google Maps. Gestiona la 
+inicialización del mapa, la entrada del usuario, la solicitud de rutas (incluyendo alternativas) y 
+la renderización de los resultados.
+
+1. Declaración de Variables Globales y Constantes
+
+    El script define varias variables en el ámbito global para ser accesibles desde todas las funciones:
+
+        - Variables de la API de Google:
+
+            + map: Almacena la instancia del objeto google.maps.Map (el mapa en sí).
+
+            + directionsService: Almacena la instancia del servicio DirectionsService, usado para solicitar las rutas.
+
+            + directionsRenderer: Almacena la instancia del DirectionsRenderer, usado para dibujar las rutas en el mapa.
+
+        - Referencias al DOM:
+
+            + resultsDiv, errorDiv, waypointsContainer, routeSelector, routeSelectionArea: Referencias a los elementos
+            HTML (contenedores, selectores, etc.) para poder manipularlos (mostrar/ocultar, actualizar contenido).
+
+        - Variables de Estado:
+
+            + waypointCount: Contador para asignar IDs únicos a las paradas intermedias (waypoints) que se añaden 
+            dinámicamente.
+
+            + lastDirectionsResponse: Almacena la respuesta completa de la API de Google. Es crucial para poder 
+            cambiar entre rutas alternativas sin necesidad de hacer una nueva solicitud a la API.
+
+            + availableRoutes: Un array para almacenar y ordenar las rutas devueltas por la API, ya que la 
+            aplicación las ordena por duración.
+
+        - Constantes:
+
+            + SLP_BOUNDS: Un objeto que define los límites geográficos (Norte, Sur, Este, Oeste) de San Luis 
+            Potosí. Se utiliza para el "Viewport Bias" del autocompletado.
+
+2. Funciones de Inicialización y Configuración
+
+    - initAutocomplete(inputElement):
+
+        + Propósito: Aplica la funcionalidad de autocompletado de la librería places de Google a un elemento 
+        <input> específico.
+
+        + Lógica: Crea una nueva instancia de google.maps.places.Autocomplete asociada al inputElement.
+
+        + Configuración Clave: Utiliza SLP_BOUNDS en la opción bounds y strictBounds: false para priorizar 
+        fuertemente las direcciones dentro de SLP, sin excluir resultados fuera de la zona.
+
+    - initMap():
+
+        + Propósito: Es la función de callback principal que se ejecuta cuando la API de Google Maps ha 
+        terminado de cargarse.
+
+        + Lógica:
+
+            A.- Instanciación: Crea las instancias de DirectionsService y DirectionsRenderer.
+
+            B.- Estilo del Renderer: Configura las polylineOptions para que la ruta dibujada 
+            sea de color azul (#0d6efd) y con un grosor de 6px.
+
+            C.- Creación del Mapa: Crea el objeto map, lo centra en SLP (initialLocation) y lo 
+            asigna al <div id="map">.
+
+            D.- Vinculación: Asocia el directionsRenderer tanto al map (para dibujar la línea) 
+            como al <div id="directions-panel"> (para mostrar las instrucciones textuales).
+
+            E.- Event Listeners: Asigna las funciones de JavaScript a los eventos click de los 
+            botones (calculate-route-btn, add-waypoint-btn) y al evento change del selector de 
+            rutas (routeSelector).
+
+            F.- Autocompletado Inicial: Llama a initAutocomplete para los campos de origen y 
+            destino que existen al cargar la página.
+
+            G.- Estado Inicial: Muestra un mensaje de bienvenida en resultsDiv.
+
+3. Gestión Dinámica de Waypoints (Paradas)
+
+    - addWaypointInput():
+
+        + Propósito: Añadir dinámicamente un nuevo campo de entrada para una parada intermedia.
+
+        + Lógica: Incrementa waypointCount, crea un nuevo div (con clase input-group), e inserta 
+        código HTML que incluye un <input> (con ID único) y un botón de "Eliminar" (-). Este botón 
+        tiene un onclick que llama a removeWaypointInput pasándole su propio ID.
+
+        + Punto Crítico: Llama a initAutocomplete para el nuevo <input> recién creado.
+
+    - removeWaypointInput(id):
+
+        + Propósito: Eliminar un campo de parada intermedia.
+
+        + Lógica: Utiliza el id recibido para encontrar el div (waypoint-group-${id}) y lo elimina 
+        del waypointsContainer usando removeChild.
+
+4. Lógica Central de Enrutamiento y Visualización
+
+    - calculateRoute():
+
+        + Propósito: Es la función principal de la aplicación. Recopila datos, solicita rutas a la API y 
+        gestiona la respuesta.
+
+        + Lógica de Ejecución:
+
+            A.- Limpieza de UI: Resetea la interfaz (oculta resultados/errores, vacía el selector, 
+            limpia lastDirectionsResponse).
+
+            B.- Recolección de Datos: Obtiene los valores de origen y destino. Selecciona todos los 
+            inputs de paradas (waypointInputs) y los transforma (usando .map) al formato de array 
+            [{ location: '...', stopover: true }] que la API requiere.
+
+            C.- Validación: Verifica que el origen y el destino no estén vacíos.
+
+            D.- Construcción de la Solicitud (Request): Crea el objeto request. Las propiedades clave son:
+
+                ~ optimizeWaypoints: true: Permite que la API de Google reordene las paradas intermedias 
+                para encontrar la ruta más eficiente (resolviendo el Problema del Viajante para esos puntos).
+
+                ~ provideRouteAlternatives: true: Solicita a la API que devuelva múltiples rutas si están disponibles.
+
+            E.- Llamada a la API: Ejecuta directionsService.route(request, ...) con una función de callback 
+            para manejar la respuesta.
+
+            F.- Manejo de Respuesta (Callback status === "OK"):
+
+                ~ Guarda la response completa en lastDirectionsResponse.
+
+                ~ Itera sobre response.routes (un array de todas las rutas encontradas).
+
+                ~ Para cada ruta, calcula la distancia y duración total sumando sus legs.
+
+                ~ Guarda estas métricas en el array availableRoutes, asegurándose de almacenar el originalIndex 
+                (el índice de la ruta en la respuesta original de Google).
+
+                ~ Ordena el array availableRoutes por duración (totalDuration), de la más rápida a la más lenta.
+
+                ~ Configura el <select> (routeSelector) con los datos ordenados, mostrando la duración y distancia. 
+                El value de cada <option> se establece como el originalIndex.
+
+                ~ Finalmente, hace visible el selector y llama a displaySelectedRoute() para mostrar la ruta más 
+                rápida (la primera en la lista ordenada).
+
+            G.- Manejo de Errores (Callback status !== "OK"): Muestra un mensaje de error apropiado 
+            (NOT_FOUND, ZERO_RESULTS, etc.) en errorDiv.
+
+    - displaySelectedRoute():
+
+        + Propósito: Se activa cuando el usuario selecciona una opción diferente en el desplegable de rutas.
+
+        + Lógica:
+
+            A.- Lee el value del routeSelector, que es el originalIndex de la ruta seleccionada.
+
+            B.- Llama a directionsRenderer.setRouteIndex() pasándole ese índice. Esto le indica al renderer cuál 
+            de las rutas (almacenadas en lastDirectionsResponse) debe dibujar en el mapa.
+
+            C.- Calcula las métricas (distancia/tiempo) solo para la ruta seleccionada.
+
+            D.- Llama a displayRouteMetrics para actualizar el panel de estadísticas con los datos de la ruta elegida.
+
+5. Funciones Auxiliares (UI)
+
+    - displayRouteMetrics(metrics, title):
+
+        + Propósito: Función de utilidad para formatear y mostrar los resultados.
+
+        + Lógica: Recibe un objeto de métricas y un título. Construye un bloque HTML con la distancia, tiempo y número 
+        de tramos, y lo inserta en resultsDiv, asegurando que tenga la clase de Bootstrap alert-success.
