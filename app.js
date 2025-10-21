@@ -58,6 +58,7 @@ function initMap() {
     });
 
     directionsRenderer.setMap(map);
+    directionsRenderer.setPanel(document.getElementById("directions-panel"));
 
     // Conectar botones y selector
     document.getElementById("calculate-route-btn").addEventListener("click", calculateRoute);
